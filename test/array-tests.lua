@@ -46,5 +46,3 @@ do
   local max = Wux:Reduce(arr, function(acc, v) return math.max(acc, v) end, 0)
   assert(max == 66)
 end
-
-print("All tests passed!")

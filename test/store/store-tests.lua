@@ -45,5 +45,3 @@ do
     assert(todo.completed == false)
   end
 end
-
-print("All tests passed!")

@@ -60,5 +60,3 @@ do
     assert(contains(original, value))
   end
 end
-
-print("All tests passed!")

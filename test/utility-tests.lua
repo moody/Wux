@@ -18,5 +18,3 @@ do
   assert(Wux:Coalesce(nil) == nil)
   assert(Wux:Coalesce(nil, nil, nil) == nil)
 end
-
-print("All tests passed!")
