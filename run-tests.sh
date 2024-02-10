@@ -1,13 +1,21 @@
 #!/bin/bash
 
-set -e;
-
 files=$(find test -name '*.lua');
 passed=0
 failed=0
 
 for file in $files; do
-  lua "$file" && ((passed+=1)) || ((failed+=1))
+  echo "Running: $file"
+
+  lua "$file"
+
+  if [ $? -eq 0 ]; then
+    ((passed+=1))
+  else
+    ((failed+=1))
+  fi
+
+  echo ""
 done
 
 echo "[Test Results]: $passed passed, $failed failed, $((passed + failed)) total"
