@@ -21,6 +21,5 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Run all test files
-        run: |
-          find test -name '*.lua' -exec lua {} \;
+      - name: Run tests
+        run: ./run-tests.sh
