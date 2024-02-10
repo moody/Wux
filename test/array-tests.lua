@@ -19,11 +19,12 @@ do
   local arr = { 1, 2, 3, 4, 5 }
   local doubled = Wux:Map(arr, function(v) return v * 2 end)
   assert(doubled ~= arr)
-  assert(doubled[1], 2)
-  assert(doubled[2], 4)
-  assert(doubled[3], 6)
-  assert(doubled[4], 8)
-  assert(doubled[5], 10)
+  assert(#doubled == #arr)
+  assert(doubled[1] == 2)
+  assert(doubled[2] == 4)
+  assert(doubled[3] == 6)
+  assert(doubled[4] == 8)
+  assert(doubled[5] == 10)
 end
 
 -- Test Wux:Filter() - divisible by 2.
