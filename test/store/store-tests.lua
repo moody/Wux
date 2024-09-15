@@ -28,12 +28,11 @@ end)
 
 -- Add todos.
 for i = 1, 3 do
-  if i == 3 then unsubscribe() end
   Store:Dispatch(TodoActions:AddTodo("Todo " .. i))
 end
 
--- Assert listener was called.
-assert(listenerCalls == 2)
+-- Assert listener was called for each dispatched action.
+assert(listenerCalls == 3)
 
 -- Assert todos were added.
 do
@@ -45,3 +44,34 @@ do
     assert(todo.completed == false)
   end
 end
+
+-- Add todos in a batch action.
+Store:Dispatch({
+  type = Wux.ActionTypes.Batch,
+  payload = {
+    TodoActions:AddTodo("Batch 1"),
+    TodoActions:AddTodo("Batch 2"),
+    TodoActions:AddTodo("Batch 3")
+  }
+})
+
+-- Assert listener was called only once for the batch.
+assert(listenerCalls == 4)
+
+-- Assert batched todos were added.
+do
+  local state = Store:GetState()
+  for i = 1, 3 do
+    local todo = state.todos[i + 3]
+    assert(todo.id == i + 3)
+    assert(todo.text == "Batch " .. i)
+    assert(todo.completed == false)
+  end
+end
+
+-- Test unsubscribe.
+unsubscribe()
+Store:Dispatch({ type = "" })
+assert(listenerCalls == 4)
+
+print("All assertions passed.")
