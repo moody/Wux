@@ -1,5 +1,5 @@
 -- =============================================================================
--- Wux: 0.2.0 - https://github.com/moody/Wux
+-- Wux: 0.2.1 - https://github.com/moody/Wux
 -- =============================================================================
 
 local _, Addon = ...
@@ -9,7 +9,7 @@ Addon.Wux = {}
 local Wux = Addon.Wux
 
 -- =============================================================================
--- EmmyLua Annotations
+-- LuaCATS Annotations
 -- =============================================================================
 
 --- @class WuxAction
@@ -69,8 +69,10 @@ end
 -- =============================================================================
 
 --- Returns the first non-nil value from the given list of arguments.
---- @vararg any
---- @return any
+--- If no non-nil value is found, returns `nil`.
+--- @generic T
+--- @param ... T
+--- @return T|nil
 function Wux:Coalesce(...)
   for i = 1, select("#", ...) do
     local value = select(i, ...)
@@ -78,6 +80,7 @@ function Wux:Coalesce(...)
       return value
     end
   end
+  return nil
 end
 
 -- =============================================================================
@@ -85,15 +88,17 @@ end
 -- =============================================================================
 
 --- Returns a shallow copy of the given table.
---- @param t table
---- @return table
+--- @generic T : table
+--- @param t T
+--- @return T
 function Wux:ShallowCopy(t)
   return copyTable(t, false)
 end
 
 --- Returns a deep copy of the given table.
---- @param t table
---- @return table
+--- @generic T : table
+--- @param t T
+--- @return T
 function Wux:DeepCopy(t)
   return copyTable(t, true)
 end
