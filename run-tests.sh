@@ -1,25 +1,24 @@
 #!/bin/bash
 
-files=$(find test -name '*.lua');
-passed=0
-failed=0
+PASSED_COUNT=0
+FAILED_COUNT=0
 
-for file in $files; do
-  echo "Running: $file"
-
-  lua "$file"
+for TEST_FILE in $(find test -name '*.lua'); do
+  LUA_OUTPUT=$(lua "$TEST_FILE" 2>&1)
 
   if [ $? -eq 0 ]; then
-    ((passed+=1))
+    ((PASSED_COUNT+=1))
+    printf "[PASS]: %s\n" "$TEST_FILE"
   else
-    ((failed+=1))
+    ((FAILED_COUNT+=1))
+    printf "\n[FAIL]: %s\n" "$TEST_FILE"
+    printf "$LUA_OUTPUT\n\n"
   fi
-
-  echo ""
 done
 
-echo "[Test Results]: $passed passed, $failed failed, $((passed + failed)) total"
+printf "\n------------------------------------------------------------\n"
+printf "[Test Results]: %s passed, %s failed, %s total\n\n" "$PASSED_COUNT" "$FAILED_COUNT" "$((PASSED_COUNT + FAILED_COUNT))"
 
-if [ $failed -ne 0 ]; then
+if [ $FAILED_COUNT -ne 0 ]; then
   exit 1
 fi
