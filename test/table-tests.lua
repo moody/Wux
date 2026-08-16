@@ -79,3 +79,5 @@ do
   local values = Wux:Values({})
   assert(#values == 0)
 end
+
+print("All assertions passed.")

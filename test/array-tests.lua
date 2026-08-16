@@ -101,3 +101,5 @@ do
     return acc
   end, true)
 end
+
+print("All assertions passed.")
