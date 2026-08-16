@@ -3,7 +3,7 @@
 PASSED_COUNT=0
 FAILED_COUNT=0
 
-for TEST_FILE in $(find test -name '*.lua'); do
+for TEST_FILE in $(find test -name '*-tests.lua'); do
   LUA_OUTPUT=$(lua "$TEST_FILE" 2>&1)
 
   if [ $? -eq 0 ]; then
