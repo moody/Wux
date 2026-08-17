@@ -1,5 +1,5 @@
 -- =============================================================================
--- Wux: 0.2.2 - https://github.com/moody/Wux
+-- Wux: 0.3.0 - https://github.com/moody/Wux
 -- =============================================================================
 
 local _, Addon = ...
@@ -16,9 +16,17 @@ local Wux = Addon.Wux
 --- @field type string Unique identifying type for the action.
 --- @field payload? any Optional data for the action.
 
---- @alias WuxReducer<T> fun(state?: T, action: WuxAction): T Function to return a new state based on the given action.
+--- @alias WuxDispatch fun(action: WuxAction): WuxAction
 
 --- @alias WuxListener<T> fun(state: T) Function to react to state changes.
+
+--- @alias WuxMiddleware<T> fun(store: WuxMiddlewareStore<T>, next: WuxDispatch, action: WuxAction): WuxAction Function that may inspect, transform, delay, or short-circuit an `action` before it reaches the next middleware (or the store's reducer) by choosing whether to call `next`.
+
+--- @class WuxMiddlewareStore<T>
+--- @field dispatch WuxDispatch
+--- @field getState fun(): T
+
+--- @alias WuxReducer<T> fun(state?: T, action: WuxAction): T Function to return a new state based on the given action.
 
 -- =============================================================================
 -- Wux - ActionTypes
@@ -204,8 +212,9 @@ end
 --- @generic T : table
 --- @param reducer WuxReducer<T>
 --- @param initialState? T
+--- @param middlewares? WuxMiddleware<T>[] Applied in list order; the first middleware receives each action first.
 --- @return WuxStore<T>
-function Wux:CreateStore(reducer, initialState)
+function Wux:CreateStore(reducer, initialState, middlewares)
   --- @class WuxStore<T>
   local Store = {}
 
@@ -225,10 +234,11 @@ function Wux:CreateStore(reducer, initialState)
     return state
   end
 
-  --- Dispatches the given `action` to the store's reducer.
-  --- If the state changes, all listeners will be notified.
+  --- Applies `action` to the store's reducer and notifies listeners if the
+  --- state changed. Middleware wraps this function; it is never called directly.
   --- @param action WuxAction
-  function Store:Dispatch(action)
+  --- @return WuxAction action
+  local function baseDispatch(action)
     local prevState = state
 
     -- Handle batched actions.
@@ -247,6 +257,40 @@ function Wux:CreateStore(reducer, initialState)
         listener(state)
       end
     end
+
+    return action
+  end
+
+  --- @type WuxDispatch
+  local dispatch
+
+  --- @type WuxMiddlewareStore<any>
+  local middlewareStore = {
+    getState = function() return state end,
+    dispatch = function(action) return dispatch(action) end
+  }
+
+  -- Compose the middleware chain around baseDispatch. Declaration order is
+  -- execution order; the first middleware in `middlewares` runs first.
+  --- @type WuxMiddleware<any>[]
+  middlewares = middlewares or {}
+  --- @type WuxDispatch
+  local chain = baseDispatch
+  for i = #middlewares, 1, -1 do
+    local middleware = middlewares[i]
+    local next = chain
+    chain = function(action)
+      return middleware(middlewareStore, next, action)
+    end
+  end
+  dispatch = chain
+
+  --- Dispatches the given `action` through any middleware, then to the
+  --- store's reducer. If the state changes, all listeners will be notified.
+  --- @param action WuxAction
+  --- @return WuxAction action
+  function Store:Dispatch(action)
+    return dispatch(action)
   end
 
   --- Registers the given `listener` to be called when the store's state changes.
