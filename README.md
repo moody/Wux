@@ -7,6 +7,7 @@ Wux is a state management library for World of Warcraft addons, inspired by [Red
 - Predictable state updates through a single store and pure reducer functions
 - Reducer composition via `CombineReducers`
 - Batched dispatches to limit redundant listener notifications
+- Middleware for intercepting, transforming, or short-circuiting dispatched actions
 - A small set of table and array utility methods (`Map`, `Filter`, `Reduce`, etc.)
 - Fully annotated with [LuaCATS](https://luals.github.io/wiki/annotations/) for autocomplete and type-checking in editors
 - No dependencies
@@ -67,9 +68,9 @@ Store:Dispatch(addTodo("Buy milk"))
 
 ### Store
 
-- **`Wux:CreateStore(reducer, initialState?)`** — Creates a new store. Immediately dispatches `Wux.ActionTypes.InitializeState` to seed the initial state.
+- **`Wux:CreateStore(reducer, initialState?, middlewares?)`** — Creates a new store. Immediately dispatches `Wux.ActionTypes.InitializeState` to seed the initial state; this initial dispatch also passes through any given middleware.
 - **`Store:GetState()`** — Returns the current state.
-- **`Store:Dispatch(action)`** — Runs `action` through the store's reducer, then notifies listeners if the state changed.
+- **`Store:Dispatch(action)`** — Runs `action` through any middleware, then the store's reducer, then notifies listeners if the state changed. Returns the dispatched `action`.
 - **`Store:Subscribe(listener)`** — Registers `listener` to be called on state changes. Returns an `unsubscribe` function.
 - **`Wux:CombineReducers(reducers)`** — Combines a table of reducers, keyed by state slice, into a single root reducer.
 
@@ -84,6 +85,23 @@ Store:Dispatch({
   }
 })
 ```
+
+### Middleware
+
+Middleware sits between a dispatched action and the store's reducer, and may inspect, transform, delay, or short-circuit it. Pass an ordered list as `CreateStore`'s third argument — the first middleware in the list sees each action first:
+
+```lua
+local function loggingMiddleware(store, next, action)
+  print("dispatching:", action.type)
+  local result = next(action) -- pass the action along; omit this call to block it
+  print("state is now:", store.getState())
+  return result
+end
+
+local Store = Wux:CreateStore(rootReducer, initialState, { loggingMiddleware })
+```
+
+`store.dispatch(action)` is also available to middleware that need to dispatch a new action — it re-enters the full chain from the start, rather than skipping ahead to the reducer.
 
 ### Utility Methods
 
