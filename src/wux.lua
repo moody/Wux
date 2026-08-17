@@ -246,7 +246,8 @@ function Wux:CreateStore(reducer, initialState, middlewares)
 
   --- Applies `action` to the store's reducer and notifies listeners if the
   --- state changed. Middleware wraps this function; it is never called directly.
-  --- @type WuxDispatch
+  --- @param action WuxAction
+  --- @return WuxAction action
   local function baseDispatch(action)
     local prevState = state
 
@@ -287,8 +288,8 @@ function Wux:CreateStore(reducer, initialState, middlewares)
 
   -- Compose the middleware chain around baseDispatch. Declaration order is
   -- execution order; the first middleware in `middlewares` runs first.
-  --- @type WuxMiddleware<any>[]
   middlewares = middlewares or {}
+  --- @cast middlewares WuxMiddleware<any>[]
   --- @type WuxDispatch
   local chain = baseDispatch
   for i = #middlewares, 1, -1 do
