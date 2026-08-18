@@ -36,33 +36,52 @@ local ActionTypes = {
   TODO_ADDED = "todos/todoAdded"
 }
 
--- Define an action creator.
+--- @class Todo
+--- @field id integer
+--- @field text string
+--- @field completed boolean
+
+--- @class TodoAppState
+--- @field todos Todo[]
+
+--- Adds a new todo.
+--- @type WuxActionCreator<string>
 local function addTodo(text)
   return { type = ActionTypes.TODO_ADDED, payload = text }
 end
 
--- Define a reducer.
+--- @type WuxReducer<Todo[]>
 local function todosReducer(state, action)
   state = state or {}
   if action.type == ActionTypes.TODO_ADDED then
     state = Wux:DeepCopy(state)
-    table.insert(state, { text = action.payload, completed = false })
+    table.insert(state, { id = #state + 1, text = action.payload, completed = false })
   end
   return state
 end
 
 -- Combine reducers and create the store.
+--- @type WuxReducer<TodoAppState>
 local rootReducer = Wux:CombineReducers({ todos = todosReducer })
 local Store = Wux:CreateStore(rootReducer)
 
 -- React to state changes.
-Store:Subscribe(function(state)
+--- @type WuxListener<TodoAppState>
+local function onStateChanged(state)
   print(#state.todos .. " todo(s)")
-end)
+end
+Store:Subscribe(onStateChanged)
 
 -- Dispatch an action.
 Store:Dispatch(addTodo("Buy milk"))
 ```
+
+## Annotation Tips
+
+A couple of patterns get the most out of Wux's [LuaCATS](https://luals.github.io/wiki/annotations/) annotations in your own code:
+
+- **Define listeners separately, not inline.** A function passed directly to `Store:Subscribe(function(state) ... end)` won't get `state` inferred. Define it as its own local with a `@type WuxListener<T>` first, then pass that instead, as in the example above.
+- **Cast the result of `CombineReducers` once, where you build it.** It can't infer the shape it composes from its arguments, so annotate the combined reducer with the real state type at that point, rather than leaving every downstream use typed as `WuxReducer<table>`.
 
 ## API
 
