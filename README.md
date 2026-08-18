@@ -52,7 +52,7 @@ end
 
 --- @type WuxReducer<Todo[]>
 local function todosReducer(state, action)
-  state = state or {}
+  state = Wux:Coalesce(state, {})
   if action.type == ActionTypes.TODO_ADDED then
     state = Wux:DeepCopy(state)
     table.insert(state, { id = #state + 1, text = action.payload, completed = false })
