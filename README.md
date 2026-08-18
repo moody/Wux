@@ -9,7 +9,7 @@ Wux is a state management library for World of Warcraft addons, inspired by [Red
 - Batched dispatches to limit redundant listener notifications
 - Middleware for intercepting, transforming, or short-circuiting dispatched actions
 - A small set of table and array utility methods (`Map`, `Filter`, `Reduce`, etc.)
-- Fully annotated with [LuaCATS](https://luals.github.io/wiki/annotations/) for autocomplete and type-checking in editors
+- Fully annotated with [LuaCATS](https://luals.github.io/wiki/annotations/) for autocomplete and inline documentation in editors
 - No dependencies
 
 ## Installation
@@ -50,7 +50,7 @@ local function addTodo(text)
   return { type = ActionTypes.TODO_ADDED, payload = text }
 end
 
---- @type WuxReducer<Todo[]>
+--- @type WuxReducer<Todo[], string>
 local function todosReducer(state, action)
   state = Wux:Coalesce(state, {})
   if action.type == ActionTypes.TODO_ADDED then
@@ -61,7 +61,7 @@ local function todosReducer(state, action)
 end
 
 -- Combine reducers and create the store.
---- @type WuxReducer<TodoAppState>
+--- @type WuxReducer<TodoAppState, any>
 local rootReducer = Wux:CombineReducers({ todos = todosReducer })
 local Store = Wux:CreateStore(rootReducer)
 
@@ -78,10 +78,12 @@ Store:Dispatch(addTodo("Buy milk"))
 
 ## Annotation Tips
 
-A couple of patterns get the most out of Wux's [LuaCATS](https://luals.github.io/wiki/annotations/) annotations in your own code:
+Wux's [LuaCATS](https://luals.github.io/wiki/annotations/) annotations are comments first: documentation you can read without any editor support at all. Where [lua-language-server](https://github.com/LuaLS/lua-language-server) understands them, whether VS Code or another client, the autocomplete and hover support is genuinely useful. Add one where LuaCATS won't infer the shape you expect on its own, not everywhere by default. A few patterns that help with that in your own code:
 
-- **Define listeners separately, not inline.** A function passed directly to `Store:Subscribe(function(state) ... end)` won't get `state` inferred. Define it as its own local with a `@type WuxListener<T>` first, then pass that instead, as in the example above.
-- **Cast the result of `CombineReducers` once, where you build it.** It can't infer the shape it composes from its arguments, so annotate the combined reducer with the real state type at that point, rather than leaving every downstream use typed as `WuxReducer<table>`.
+- **Define anything you want typed as its own local, not inline.** LuaCATS infers a function's parameters from its own declared signature, not from the slot it's passed into. `Store:Subscribe(function(state) ... end)` won't get `state` inferred; define the listener separately with its own `@type WuxListener<S>` first, as the example above does. The same is why `todosReducer` and `addTodo` are defined named rather than inline.
+- **Cast the result of `CombineReducers` once, where you build it.** It can't infer the shape it composes from its arguments, so annotate the combined reducer with the real state type at that point, rather than leaving every downstream use typed as `WuxReducer<table, any>`.
+- **Only give a reducer a payload type (`P` in `WuxReducer<S, P>`) if every action it reads `action.payload` for shares that shape.** `todosReducer` above is safe with `WuxReducer<Todo[], string>` since it only reads `action.payload` for one action type. A composed reducer, like whatever `CombineReducers` returns, sees every action passing through and should keep `P` as `any`.
+- **Reach for `WuxRawReducer<S, A>` when one payload type isn't enough.** `WuxReducer<S, P>` is sugar for `WuxRawReducer<S, WuxAction<P>>`. Use `WuxRawReducer` directly with a specific action class, or a union of several, when a reducer's branches expect different payload shapes for different action types.
 
 ## API
 
