@@ -13,30 +13,35 @@ local Wux = Addon.Wux
 -- =============================================================================
 
 --- The action dispatched to a store and passed to its reducer.
---- @class WuxAction<T>
+--- @class WuxAction<P>
 --- @field type string Unique identifying type for the action.
---- @field payload? T Optional data for the action.
+--- @field payload? P Optional data for the action.
 
 --- Function to create a `WuxAction` from a given value.
---- @alias WuxActionCreator<T> fun(value: T): WuxAction<T>
+--- @alias WuxActionCreator<P> fun(value: P): WuxAction<P>
 
 --- Function that processes a single action, used internally by a store and
 --- passed to middleware as `next`.
 --- @alias WuxDispatch fun(action: WuxAction<any>): WuxAction<any>
 
 --- Function to react to state changes.
---- @alias WuxListener<T> fun(state: T)
+--- @alias WuxListener<S> fun(state: S)
 
 --- Function that may inspect, transform, delay, or short-circuit an `action` before it reaches the next middleware (or the store's reducer) by choosing whether to call `next`.
---- @alias WuxMiddleware<T> fun(store: WuxMiddlewareStore<T>, next: WuxDispatch, action: WuxAction<any>): WuxAction<any>
+--- @alias WuxMiddleware<S> fun(store: WuxMiddlewareStore<S>, next: WuxDispatch, action: WuxAction<any>): WuxAction<any>
 
 --- The subset of a store passed to middleware.
---- @class WuxMiddlewareStore<T>
+--- @class WuxMiddlewareStore<S>
 --- @field dispatch WuxDispatch Dispatches through the full middleware chain, not just the middleware after the current one.
---- @field getState fun(): T Returns the store's current state.
+--- @field getState fun(): S Returns the store's current state.
+
+--- Function to return a new state based on the given action. Unlike
+--- `WuxReducer`, `A` is the full action type rather than just its payload,
+--- so it can be a specific action class or a union of several.
+--- @alias WuxRawReducer<S, A> fun(state?: S, action: A): S
 
 --- Function to return a new state based on the given action.
---- @alias WuxReducer<T> fun(state?: T, action: WuxAction<any>): T
+--- @alias WuxReducer<S, P> WuxRawReducer<S, WuxAction<P>>
 
 -- =============================================================================
 -- Wux - ActionTypes
@@ -200,8 +205,8 @@ end
 
 --- Returns a root reducer composed of all given reducers. If none of them
 --- change their slice of state, the previous state is returned as-is.
---- @param reducers { [string]: WuxReducer<any> }
---- @return WuxReducer<table> reducer
+--- @param reducers { [string]: WuxReducer<any, any> }
+--- @return WuxReducer<table, any> reducer
 function Wux:CombineReducers(reducers)
   return function(state, action)
     state = state or {}
@@ -221,14 +226,14 @@ function Wux:CombineReducers(reducers)
 end
 
 --- Returns a new store based on the given reducer.
---- @generic T : table
---- @param reducer WuxReducer<T>
---- @param initialState? T
---- @param middlewares? WuxMiddleware<T>[] Applied in list order; the first middleware receives each action first.
---- @return WuxStore<T>
+--- @generic S : table
+--- @param reducer WuxReducer<S, any>
+--- @param initialState? S
+--- @param middlewares? WuxMiddleware<S>[] Applied in list order; the first middleware receives each action first.
+--- @return WuxStore<S>
 function Wux:CreateStore(reducer, initialState, middlewares)
   --- The store returned by `CreateStore()`.
-  --- @class WuxStore<T>
+  --- @class WuxStore<S>
   local Store = {}
 
   --- @type WuxListener<any>[]
@@ -242,7 +247,7 @@ function Wux:CreateStore(reducer, initialState, middlewares)
   end
 
   --- Returns the current state of the store.
-  --- @return T state
+  --- @return S state
   function Store:GetState()
     return state
   end
@@ -313,7 +318,7 @@ function Wux:CreateStore(reducer, initialState, middlewares)
   end
 
   --- Registers the given `listener` to be called when the store's state changes.
-  --- @param listener WuxListener<T>
+  --- @param listener WuxListener<S>
   --- @return fun() unsubscribe Unsubscribes the `listener`.
   function Store:Subscribe(listener)
     table.insert(listeners, listener)
