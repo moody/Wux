@@ -17,6 +17,7 @@ local Wux = Addon.Wux
 --- @field type string Unique identifying type for the action.
 --- @field payload? T Optional data for the action.
 
+--- Function to create a `WuxAction` from a given value.
 --- @alias WuxActionCreator<T> fun(value: T): WuxAction<T>
 
 --- Function that processes a single action, used internally by a store and
