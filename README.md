@@ -23,9 +23,11 @@ Wux is a state management library for World of Warcraft addons, inspired by [Red
    local Wux = Addon.Wux
    ```
 
+3. **Declare SavedVariables** (optional): List them in your TOC file, `## SavedVariables: MyAddonDB` and/or `## SavedVariablesPerCharacter: MyAddonCharDB`. See the end of Usage below for reading and persisting them with Wux.
+
 ## Usage
 
-Wux's state lives in one table, built up by reducers rather than written to directly. That table's final shape is what you'd persist as SavedVariables, though reading and writing it is outside Wux itself.
+Wux's state lives in one table, built up by reducers rather than written to directly. That table's final shape is what you'd persist as SavedVariables, covered at the end of this section.
 
 This is the root state we want to end up with:
 
@@ -148,6 +150,24 @@ local state = Store:GetState()
 }
 ```
 
+**Persisting to SavedVariables.** SavedVariables globals aren't populated until `ADDON_LOADED` fires for your addon, so in a real addon you'd create the store this way instead of the plain call above, wrapped in that event:
+
+```lua
+local mapping = "MyAddonDB"
+
+local frame = CreateFrame("Frame")
+frame:RegisterEvent("ADDON_LOADED")
+frame:SetScript("OnEvent", function(self, event, loadedAddonName)
+  if loadedAddonName ~= ADDON_NAME then return end
+  self:UnregisterEvent("ADDON_LOADED")
+
+  local Store = Wux:CreateStore(rootReducer, Wux:ReadSavedVariables(mapping))
+  Store:ConnectSavedVariables(mapping)
+end)
+```
+
+`mapping` can also be a table, `{ todos = "MyAddonDB", ui = "MyAddonCharDB" }`, mapping each root state key to its own global, matching however many `## SavedVariables` / `## SavedVariablesPerCharacter` entries your TOC declares. Everything else, `Subscribe`, `Dispatch`, `GetState`, works the same regardless of where `Store` came from.
+
 Adding a new option later works the same way: give it a reducer (or a field inside an existing one) with its own default via `Wux:Coalesce`. That reducer still runs on `CreateStore`'s first dispatch even against an old SavedVariables file that's never seen the field before, so the default fills the gap instead of leaving it `nil`.
 
 Every piece above does one job: an action describes what happened, a reducer says how that changes its own corner of state, and Dispatch is the single, traceable door all of it goes through.
@@ -161,6 +181,9 @@ Every piece above does one job: an action describes what happened, a reducer say
 - **`Store:Dispatch(action)`** — Runs `action` through any middleware, then the store's reducer, then notifies listeners if the state changed. Returns the dispatched `action`.
 - **`Store:Subscribe(listener)`** — Registers `listener` to be called on state changes. Returns an `unsubscribe` function.
 - **`Wux:CombineReducers(reducers)`** — Combines a table of reducers, keyed by state slice, into a single root reducer.
+- **`Wux:ReadSavedVariables(mapping)`** — Reads SavedVariables globals into a table, based on `mapping` (a string for one global, or a table mapping state keys to globals). Use as `CreateStore`'s `initialState`.
+- **`Wux:WriteSavedVariables(mapping, state)`** — Writes `state` to its mapped SavedVariables globals.
+- **`Store:ConnectSavedVariables(mapping)`** — Writes state to its mapped SavedVariables globals immediately, then again on every change. Returns an `unsubscribe` function.
 
 Multiple actions can be dispatched together via `Wux.ActionTypes.Batch`, notifying listeners only once for the whole batch:
 
