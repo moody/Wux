@@ -14,17 +14,12 @@ Wux is a state management library for World of Warcraft addons, inspired by [Red
 
 ## Installation
 
-1. **Integration**: Copy the `src/wux.lua` file into your World of Warcraft addon project directory.
+1. **Add the library**: Copy `src/wux.lua` into your addon, and add it to your TOC file so it loads with the rest of your addon.
 
-2. **TOC File Update**: Update your addon's TOC file to ensure that the Wux library is loaded along with your addon.
-
-3. **Initialization**: Once Wux is loaded, it will be initialized as a key-value pair within your addon's Lua environment. You can access it by retrieving it from the addon's table, which is available through the varargs `...` provided to every Lua file:
+2. **Access it**: Wux attaches itself to your addon's table, available through the varargs `...` in any file:
 
    ```lua
-   -- Retrieve the addon's name and table from varargs.
    local ADDON_NAME, Addon = ...
-
-   -- Access the Wux library from the addon table.
    local Wux = Addon.Wux
    ```
 
@@ -55,7 +50,7 @@ end
 
 **Reducers.** A reducer is a plain function. Given its own slice of state and an action, it returns the next state for that slice, and it's the only place that slice is allowed to change. A reducer also owns its own default: `todosReducer` runs on the store's first dispatch, before `Dispatch` is ever called by hand, so `todos` always exists.
 
-When a reducer's state is a table, mutating it in place is a problem: Wux checks whether state changed by comparing table references, not contents, so mutating in place looks like nothing happened and `Subscribe` never fires. A boolean, number, or string doesn't have this problem, since a new value is already a different value. `todosReducer` below only inserts a new item, never changes an existing one, so `Wux:ShallowCopy` is enough to get a new top-level table. `Wux:DeepCopy` is for when something nested needs to change too.
+When a reducer's state is a table, mutating it in place is a problem: Wux compares state by table reference, not contents, so nothing looks like it changed and `Subscribe` never fires. A boolean, number, or string doesn't have this problem, since a new value is already a different value. `todosReducer` below only inserts a new item, never changes an existing one, so `Wux:ShallowCopy` is enough to get a new top-level table. `Wux:DeepCopy` is for when something nested needs to change too.
 
 ```lua
 --- @class Todo
