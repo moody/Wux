@@ -30,60 +30,132 @@ Wux is a state management library for World of Warcraft addons, inspired by [Red
 
 ## Usage
 
-```lua
--- Define action types.
-local ActionTypes = {
-  TODO_ADDED = "todos/todoAdded"
-}
+Wux's state lives in one table, built up by reducers rather than written to directly. That table's final shape is what you'd persist as SavedVariables, though reading and writing it is outside Wux itself.
 
+This is the root state we want to end up with:
+
+```lua
+{
+  todos = {},
+  ui = {
+    filters = { onlyIncomplete = false },
+  },
+}
+```
+
+**Actions.** An action is a table with a `type`. `addTodo` is an action creator, a function that builds one instead of repeating the shape at every call site.
+
+```lua
+--- @param text string
+--- @return WuxPayloadAction<string>
+local function addTodo(text)
+  return { type = "ADD_TODO", payload = text }
+end
+```
+
+**Reducers.** A reducer is a plain function. Given its own slice of state and an action, it returns the next state for that slice, and it's the only place that slice is allowed to change. A reducer also owns its own default: `todosReducer` runs on the store's first dispatch, before `Dispatch` is ever called by hand, so `todos` always exists.
+
+When a reducer's state is a table, mutating it in place is a problem: Wux checks whether state changed by comparing table references, not contents, so mutating in place looks like nothing happened and `Subscribe` never fires. A boolean, number, or string doesn't have this problem, since a new value is already a different value. `todosReducer` below only inserts a new item, never changes an existing one, so `Wux:ShallowCopy` is enough to get a new top-level table. `Wux:DeepCopy` is for when something nested needs to change too.
+
+```lua
 --- @class Todo
 --- @field id integer
 --- @field text string
 --- @field completed boolean
 
---- @class TodoAppState
---- @field todos Todo[]
-
---- Adds a new todo.
---- @type WuxActionCreator<string>
-local function addTodo(text)
-  return { type = ActionTypes.TODO_ADDED, payload = text }
-end
-
---- @type WuxReducer<Todo[], string>
+--- @type WuxReducer<Todo[], WuxPayloadAction<string>>
 local function todosReducer(state, action)
   state = Wux:Coalesce(state, {})
-  if action.type == ActionTypes.TODO_ADDED then
-    state = Wux:DeepCopy(state)
+  if action.type == "ADD_TODO" then
+    state = Wux:ShallowCopy(state)
     table.insert(state, { id = #state + 1, text = action.payload, completed = false })
   end
   return state
 end
+```
 
--- Combine reducers and create the store.
+The same pattern covers a second slice, `ui.filters`. This action carries no payload, so its type stays a bare `WuxAction`.
+
+```lua
+--- @return WuxAction
+local function toggleFilter()
+  return { type = "TOGGLE_FILTER" }
+end
+
+--- @class TodoFilters
+--- @field onlyIncomplete boolean
+
+--- @type WuxReducer<TodoFilters, WuxAction>
+local function filtersReducer(state, action)
+  state = Wux:Coalesce(state, { onlyIncomplete = false })
+  if action.type == "TOGGLE_FILTER" then
+    state = { onlyIncomplete = not state.onlyIncomplete }
+  end
+  return state
+end
+```
+
+**Composing reducers.** `CombineReducers` takes a table of reducers, keyed by where they live in the final state, and returns one reducer that runs all of them and assembles the results. That result is itself a reducer, so it can be combined again. This is how `filters` ends up nested under `ui`, and `ui` under the root.
+
+```lua
+--- @class TodoAppState
+--- @field todos Todo[]
+--- @field ui { filters: TodoFilters }
+
 --- @type WuxReducer<TodoAppState, any>
-local rootReducer = Wux:CombineReducers({ todos = todosReducer })
-local Store = Wux:CreateStore(rootReducer)
+local rootReducer = Wux:CombineReducers({
+  todos = todosReducer,
+  ui = Wux:CombineReducers({
+    filters = filtersReducer
+  })
+})
+```
 
--- React to state changes.
+**Creating the store.** `CreateStore` wires up the root reducer and immediately dispatches once to seed state. That's the dispatch `todosReducer` and `filtersReducer` handle above, with no `initialState` given here.
+
+```lua
+local Store = Wux:CreateStore(rootReducer)
+```
+
+**Reacting to changes.** `Subscribe` registers a callback that runs whenever state changes, so the rest of your addon can react without polling `GetState()` itself.
+
+```lua
 --- @type WuxListener<TodoAppState>
 local function onStateChanged(state)
   print(#state.todos .. " todo(s)")
 end
 Store:Subscribe(onStateChanged)
-
--- Dispatch an action.
-Store:Dispatch(addTodo("Buy milk"))
 ```
 
-## Annotation Tips
+**Dispatching.** Dispatching an action is the only way state changes. The store runs it through every reducer and replaces state with whatever they return.
 
-Wux's [LuaCATS](https://luals.github.io/wiki/annotations/) annotations are comments first: documentation you can read without any editor support at all. Where [lua-language-server](https://github.com/LuaLS/lua-language-server) understands them, whether VS Code or another client, the autocomplete and hover support is genuinely useful. Add one where LuaCATS won't infer the shape you expect on its own, not everywhere by default. A few patterns that help with that in your own code:
+```lua
+Store:Dispatch(addTodo("Buy milk"))
+Store:Dispatch(toggleFilter())
+```
 
-- **Define anything you want typed as its own local, not inline.** LuaCATS infers a function's parameters from its own declared signature, not from the slot it's passed into. `Store:Subscribe(function(state) ... end)` won't get `state` inferred; define the listener separately with its own `@type WuxListener<S>` first, as the example above does. The same is why `todosReducer` and `addTodo` are defined named rather than inline.
-- **Cast the result of `CombineReducers` once, where you build it.** It can't infer the shape it composes from its arguments, so annotate the combined reducer with the real state type at that point, rather than leaving every downstream use typed as `WuxReducer<table, any>`.
-- **Only give a reducer a payload type (`P` in `WuxReducer<S, P>`) if every action it reads `action.payload` for shares that shape.** `todosReducer` above is safe with `WuxReducer<Todo[], string>` since it only reads `action.payload` for one action type. A composed reducer, like whatever `CombineReducers` returns, sees every action passing through and should keep `P` as `any`.
-- **Reach for `WuxRawReducer<S, A>` when one payload type isn't enough.** `WuxReducer<S, P>` is sugar for `WuxRawReducer<S, WuxAction<P>>`. Use `WuxRawReducer` directly with a specific action class, or a union of several, when a reducer's branches expect different payload shapes for different action types.
+**Reading state.** `GetState()` returns the current state directly, any time you need it.
+
+```lua
+local state = Store:GetState()
+```
+
+`state` now holds:
+
+```lua
+{
+  todos = {
+    { id = 1, text = "Buy milk", completed = false },
+  },
+  ui = {
+    filters = { onlyIncomplete = true },
+  },
+}
+```
+
+Adding a new option later works the same way: give it a reducer (or a field inside an existing one) with its own default via `Wux:Coalesce`. That reducer still runs on `CreateStore`'s first dispatch even against an old SavedVariables file that's never seen the field before, so the default fills the gap instead of leaving it `nil`.
+
+Every piece above does one job: an action describes what happened, a reducer says how that changes its own corner of state, and Dispatch is the single, traceable door all of it goes through.
 
 ## API
 
@@ -109,20 +181,25 @@ Store:Dispatch({
 
 ### Middleware
 
-Middleware sits between a dispatched action and the store's reducer, and may inspect, transform, delay, or short-circuit it. Pass an ordered list as `CreateStore`'s third argument — the first middleware in the list sees each action first:
+Pass an ordered list as `CreateStore`'s third argument. The first middleware in the list sees each action first, and may inspect, transform, delay, or short-circuit it by choosing whether to call `next`:
 
 ```lua
 local function loggingMiddleware(store, next, action)
-  print("dispatching:", action.type)
-  local result = next(action) -- pass the action along; omit this call to block it
-  print("state is now:", store.getState())
+  print("Dispatching: " .. action.type)
+  local result = next(action)
+  if action.type == "ADD_TODO" then
+    local state = store.getState()
+    local numTodos = #state.todos
+    print("Added new todo: " .. state.todos[numTodos].text)
+    print("Total todos: " .. numTodos)
+  end
   return result
 end
 
-local Store = Wux:CreateStore(rootReducer, initialState, { loggingMiddleware })
+local Store = Wux:CreateStore(rootReducer, nil, { loggingMiddleware })
 ```
 
-`store.dispatch(action)` is also available to middleware that need to dispatch a new action — it re-enters the full chain from the start, rather than skipping ahead to the reducer.
+`store.dispatch(action)` is also available to middleware that need to dispatch a new action. It re-enters the full chain from the start, rather than skipping ahead to the reducer.
 
 ### Utility Methods
 
