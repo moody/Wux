@@ -22,9 +22,6 @@ local Wux = Addon.Wux
 --- @class WuxPayloadAction<P> : WuxAction
 --- @field payload P Data for the action.
 
---- Function to create a `WuxPayloadAction` from a given value.
---- @alias WuxActionCreator<P> fun(value: P): WuxPayloadAction<P>
-
 -- Store
 
 --- Function to return a new state based on the given action. `state` is typed
