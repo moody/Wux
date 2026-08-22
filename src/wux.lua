@@ -33,11 +33,16 @@ local Wux = Addon.Wux
 --- Function to react to state changes.
 --- @alias WuxListener<S> fun(state: S)
 
+--- Maps root state to SavedVariables globals. A string maps the whole state
+--- to one global; a table maps each state key to its own.
+--- @alias WuxSavedVariablesMapping string | table<string, string>
+
 --- The store returned by `CreateStore()`.
 --- @class WuxStore<S>
 --- @field GetState fun(self: WuxStore<S>): S Returns the current state of the store.
 --- @field Dispatch fun(self: WuxStore<S>, action: WuxAction): WuxAction Runs `action` through any middleware, then the store's reducer, then notifies listeners if the state changed.
 --- @field Subscribe fun(self: WuxStore<S>, listener: WuxListener<S>): fun() Registers `listener` to be called when the store's state changes. Returns an `unsubscribe` function.
+--- @field ConnectSavedVariables fun(self: WuxStore<S>, mapping: WuxSavedVariablesMapping): fun() Writes state to its mapped SavedVariables globals immediately, then again on every change. Returns an `unsubscribe` function.
 
 -- Middleware
 
@@ -235,6 +240,35 @@ function Wux:CombineReducers(reducers)
   end
 end
 
+--- Reads SavedVariables globals into a table shaped for `CreateStore`'s
+--- `initialState`, based on the given mapping.
+--- @param mapping WuxSavedVariablesMapping
+--- @return table
+function Wux:ReadSavedVariables(mapping)
+  if type(mapping) == "string" then
+    return _G[mapping] or {}
+  end
+
+  local state = {}
+  for key, name in pairs(mapping) do
+    state[key] = _G[name] or {}
+  end
+  return state
+end
+
+--- Writes state to its mapped SavedVariables globals.
+--- @param mapping WuxSavedVariablesMapping
+--- @param state table
+function Wux:WriteSavedVariables(mapping, state)
+  if type(mapping) == "string" then
+    _G[mapping] = state
+  else
+    for key, name in pairs(mapping) do
+      _G[name] = state[key]
+    end
+  end
+end
+
 --- Returns a new store based on the given reducer.
 --- @generic S : table
 --- @param reducer WuxReducer<S, any>
@@ -338,6 +372,17 @@ function Wux:CreateStore(reducer, initialState, middlewares)
         end
       end
     end
+  end
+
+  --- Writes state to its mapped SavedVariables globals immediately, then
+  --- again on every subsequent change.
+  --- @param mapping WuxSavedVariablesMapping
+  --- @return fun() unsubscribe
+  function Store:ConnectSavedVariables(mapping)
+    Wux:WriteSavedVariables(mapping, state)
+    return Store:Subscribe(function(newState)
+      Wux:WriteSavedVariables(mapping, newState)
+    end)
   end
 
   -- Seed the initial state. This also passes through any given middleware.
