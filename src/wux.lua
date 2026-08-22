@@ -218,7 +218,7 @@ end
 
 --- Returns a root reducer composed of all given reducers. If none of them
 --- change their slice of state, the previous state is returned as-is.
---- @param reducers { [string]: WuxReducer<any, any> }
+--- @param reducers table<string, WuxReducer<table, any>>
 --- @return WuxReducer<table, any> reducer
 function Wux:CombineReducers(reducers)
   return function(state, action)
@@ -330,7 +330,7 @@ function Wux:CreateStore(reducer, initialState, middlewares)
   end
 
   --- Registers the given `listener` to be called when the store's state changes.
-  --- @param listener WuxListener<S>
+  --- @param listener WuxListener<any>
   --- @return fun() unsubscribe Unsubscribes the `listener`.
   function Store:Subscribe(listener)
     table.insert(listeners, listener)
