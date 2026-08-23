@@ -218,8 +218,9 @@ end
 -- Wux - Store Methods
 -- =============================================================================
 
---- Returns a reducer that replaces its state with `action.payload` when
---- `action.type` matches `actionType`, or with `defaultState` when state is `nil`.
+--- Returns a reducer that replaces its state with a shallow copy of
+--- `action.payload` when `action.type` matches `actionType`, or with
+--- `defaultState` when state is `nil`.
 --- @generic S
 --- @param actionType string
 --- @param defaultState S
@@ -228,7 +229,7 @@ function Wux:CreatePayloadReducer(actionType, defaultState)
   return function(state, action)
     state = Wux:Coalesce(state, defaultState)
     if action.type == actionType then
-      return action.payload
+      return Wux:ShallowCopy(action.payload)
     end
     return state
   end
