@@ -181,6 +181,7 @@ Every piece above does one job: an action describes what happened, a reducer say
 - **`Store:Dispatch(action)`** — Runs `action` through any middleware, then the store's reducer, then notifies listeners if the state changed. Returns the dispatched `action`.
 - **`Store:Subscribe(listener)`** — Registers `listener` to be called on state changes. Returns an `unsubscribe` function.
 - **`Wux:CombineReducers(reducers)`** — Combines a table of reducers, keyed by state slice, into a single root reducer.
+- **`Wux:CreateActionCreator(actionType)`** — Returns a function that builds a `WuxPayloadAction` with `actionType`, from whatever value it's called with. Cast it where you assign it, e.g. `--- @type WuxActionCreator<boolean>`, since `actionType` alone can't tell the type system what the payload should be.
 - **`Wux:CreatePayloadReducer(actionType, defaultState)`** — Returns a reducer that replaces its state with a shallow copy of `action.payload` when `action.type` matches `actionType`, or with `defaultState` when state is `nil`.
 - **`Wux:CreatePatchReducer(actionType, defaultState)`** — Returns a reducer that shallow-merges `action.payload`'s fields into its state when `action.type` matches `actionType`, or with `defaultState` when state is `nil`. Fields not present in `payload` are left as-is.
 - **`Wux:ReadSavedVariables(mapping)`** — Reads SavedVariables globals into a table, based on `mapping` (a string for one global, or a table mapping state keys to globals). Use as `CreateStore`'s `initialState`.
