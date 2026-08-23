@@ -1,3 +1,5 @@
+--- @diagnostic disable: undefined-global
+
 local Addon = {}
 local wux = assert(loadfile("src/wux.lua"))
 
