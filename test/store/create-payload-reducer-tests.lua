@@ -32,4 +32,14 @@ do
   assert(Store:GetState().value == 5)
 end
 
+-- Test Wux:CreatePayloadReducer() - the produced reducer responds to a
+-- matching dispatch through a real store.
+do
+  local reducer = Wux:CreatePayloadReducer("SET_VALUE", 0)
+  local rootReducer = Wux:CombineReducers({ value = reducer })
+  local Store = Wux:CreateStore(rootReducer, { value = 5 })
+  Store:Dispatch({ type = "SET_VALUE", payload = 10 })
+  assert(Store:GetState().value == 10)
+end
+
 print("All assertions passed.")
