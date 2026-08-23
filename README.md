@@ -223,8 +223,8 @@ local Store = Wux:CreateStore(rootReducer, nil, { loggingMiddleware })
 ### Utility Methods
 
 - **`Wux:Coalesce(...)`** — Returns the first non-nil value from the given arguments.
-- **`Wux:ShallowCopy(t)`** — Returns a shallow copy of a table.
-- **`Wux:DeepCopy(t)`** — Returns a deep copy of a table.
+- **`Wux:ShallowCopy(t)`** — Returns a shallow copy of a table. A non-table value is returned as-is.
+- **`Wux:DeepCopy(t)`** — Returns a deep copy of a table. A non-table value is returned as-is.
 - **`Wux:Values(t)`** — Returns an array of a table's values.
 - **`Wux:ForEach(arr, callback)`** — Executes `callback` for each element in an array.
 - **`Wux:Filter(arr, callback)`** — Returns a new array of elements for which `callback` returns `true`.
