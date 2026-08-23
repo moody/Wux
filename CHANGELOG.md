@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.3.0] - 2026-08-16
+## [0.3.0] - Unreleased
 
 ### Added
 
@@ -16,6 +16,11 @@
   ```
 
 - `Store:Dispatch(action)` now returns the dispatched `action`
+- `Wux:CreateActionCreator(actionType)` returns a function that builds a `WuxPayloadAction` with `actionType`, from whatever value it's called with
+- `Wux:CreatePayloadReducer(actionType, defaultState)` returns a reducer that replaces its state with `action.payload` when `action.type` matches `actionType`, or with `defaultState` when state is `nil`
+- `Wux:CreatePatchReducer(actionType, defaultState)` returns a reducer that shallow-merges `action.payload`'s fields into its state when `action.type` matches `actionType`, leaving fields not present in `payload` as-is
+- `Wux:ReadSavedVariables(mapping)` / `Wux:WriteSavedVariables(mapping, state)` read/write state to SavedVariables globals, based on a string (one global for the whole state) or table (one global per state key) mapping
+- `Store:ConnectSavedVariables(mapping)` writes state to its mapped SavedVariables globals immediately, then again on every change
 
 ### Changed
 
