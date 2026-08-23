@@ -23,17 +23,16 @@ do
   assert(reducer(0, { type = "SET_VALUE", payload = 1 }) == 1)
 end
 
--- Test Wux:CreatePayloadReducer() - a table payload is copied, so mutating
--- it after being returned doesn't affect the stored state.
+-- Test Wux:CreatePayloadReducer() - a table payload is used as-is, not
+-- copied, so it becomes the stored state by reference.
 do
   local reducer = Wux:CreatePayloadReducer("SET_VALUE", {})
   local payload = { count = 1 }
   local newState = reducer(nil, { type = "SET_VALUE", payload = payload })
-  assert(newState ~= payload)
-  assert(newState.count == 1)
+  assert(newState == payload)
 
   payload.count = 999
-  assert(newState.count == 1)
+  assert(newState.count == 999)
 end
 
 -- Test Wux:CreatePayloadReducer() - defaultState is not used when an
