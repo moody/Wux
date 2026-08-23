@@ -238,7 +238,7 @@ end
 
 --- Returns a root reducer composed of all given reducers. If none of them
 --- change their slice of state, the previous state is returned as-is.
---- @param reducers table<string, WuxReducer<table, any>>
+--- @param reducers table<string, WuxReducer<any, any>>
 --- @return WuxReducer<table, any> reducer
 function Wux:CombineReducers(reducers)
   return function(state, action)
