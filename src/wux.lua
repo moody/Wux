@@ -84,9 +84,10 @@ Wux.ActionTypes = {
 -- Local Functions
 -- =============================================================================
 
---- Returns a copy of the given table.
+--- Returns a copy of the given table. A non-table value is returned as-is.
 --- @param t table The table to copy.
 --- @param deep boolean If true, performs a deep copy.
+--- @return table
 local function copyTable(t, deep)
   if type(t) ~= "table" then return t end
 
@@ -126,16 +127,16 @@ end
 -- =============================================================================
 
 --- Returns a shallow copy of the given table. Nested tables are shared by
---- reference, not copied.
---- @generic T : table
+--- reference, not copied. A non-table value is returned as-is.
+--- @generic T
 --- @param t T
 --- @return T
 function Wux:ShallowCopy(t)
   return copyTable(t, false)
 end
 
---- Returns a deep copy of the given table.
---- @generic T : table
+--- Returns a deep copy of the given table. A non-table value is returned as-is.
+--- @generic T
 --- @param t T
 --- @return T
 function Wux:DeepCopy(t)
