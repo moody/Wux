@@ -74,4 +74,42 @@ unsubscribe()
 Store:Dispatch({ type = "" })
 assert(listenerCalls == 4)
 
+-- Test Wux:CreateStore() - initialState is honored.
+do
+  local initial = { todos = { { id = 1, text = "Preset", completed = false } } }
+  local PresetStore = Wux:CreateStore(rootReducer, initial)
+  local state = PresetStore:GetState()
+  assert(#state.todos == 1)
+  assert(state.todos[1].text == "Preset")
+end
+
+-- Test Wux:CreateStore() - listeners are not notified when a dispatched action
+-- does not change state.
+do
+  local NoopStore = Wux:CreateStore(rootReducer)
+  local calls = 0
+  NoopStore:Subscribe(function() calls = calls + 1 end)
+  NoopStore:Dispatch({ type = "SOME_UNKNOWN_ACTION" })
+  assert(calls == 0)
+end
+
+-- Test Wux:CreateStore() - multiple listeners are all notified, and unsubscribing
+-- one does not affect the others.
+do
+  local MultiStore = Wux:CreateStore(rootReducer)
+
+  local callsA, callsB = 0, 0
+  local unsubscribeA = MultiStore:Subscribe(function() callsA = callsA + 1 end)
+  MultiStore:Subscribe(function() callsB = callsB + 1 end)
+
+  MultiStore:Dispatch(TodoActions:AddTodo("Multi 1"))
+  assert(callsA == 1)
+  assert(callsB == 1)
+
+  unsubscribeA()
+  MultiStore:Dispatch(TodoActions:AddTodo("Multi 2"))
+  assert(callsA == 1)
+  assert(callsB == 2)
+end
+
 print("All assertions passed.")
