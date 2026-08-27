@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.1] - 2026-08-26
+
+### Changed
+
+- `Wux:Coalesce(...)`'s declared return type is now `T` instead of `T|nil`.
+
 ## [0.3.0] - 2026-08-25
 
 ### Added
