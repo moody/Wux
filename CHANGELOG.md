@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.0] - 2026-09-16
+
+### Added
+
+- `Wux:CreateMergeReducer(actionType, defaultState)` same as `Wux:CreatePatchReducer`, but recursively: a field present as a table in both the existing state and the payload is merged into rather than replacing the existing nested table
+
 ## [0.3.1] - 2026-08-26
 
 ### Changed
